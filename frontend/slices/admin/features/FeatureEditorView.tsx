@@ -1,0 +1,66 @@
+"use client";
+
+import * as React from "react";
+import { CrudFormView } from "@/features/_shared/crud/CrudFormView";
+import type {
+  CrudController,
+  EntityMeta,
+  FieldDef,
+} from "@/features/_shared/crud/types";
+import { useStore } from "@/features/_app/store";
+import { ADMIN_BASE, PUBLIC_BASE } from "@/features/_app/nav-config";
+import type { FeatureItem } from "@/features/_app/types";
+
+const META: EntityMeta = {
+  label: "Feature",
+  labelPlural: "Features",
+  publicHref: () => `${PUBLIC_BASE}/features`,
+};
+
+export const FIELDS: FieldDef<FeatureItem>[] = [
+  { kind: "text", key: "title", label: "Title" },
+  {
+    kind: "icon",
+    key: "icon",
+    label: "Icon",
+    hint: "Emoji / Lucide / Phosphor — shown above the feature title.",
+  },
+  { kind: "textarea", key: "blurb", label: "Blurb", rows: 3 },
+];
+
+function useFeaturesController(): CrudController<FeatureItem> {
+  const { state, dispatch } = useStore();
+  return React.useMemo(
+    () => ({
+      items: state.features,
+      getId: (f) => f.id,
+      blank: () => ({
+        id: `f-${Math.random().toString(36).slice(2, 10)}`,
+        title: "New feature",
+        blurb: "",
+        icon: "Sparkles",
+      }),
+      create: (f) => dispatch({ type: "FEATURE_UPSERT", payload: f }),
+      update: (id, patch) =>
+        dispatch({
+          type: "FEATURE_UPSERT",
+          payload: { ...state.features.find((x) => x.id === id)!, ...patch, id },
+        }),
+      remove: (id) => dispatch({ type: "FEATURE_DELETE", payload: { id } }),
+    }),
+    [state.features, dispatch],
+  );
+}
+
+export function FeatureEditorView({ id }: { id: string }) {
+  const controller = useFeaturesController();
+  return (
+    <CrudFormView
+      id={id}
+      meta={META}
+      controller={controller}
+      fields={FIELDS}
+      backHref={`${ADMIN_BASE}/features`}
+    />
+  );
+}
